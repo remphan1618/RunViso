@@ -12,13 +12,13 @@ log() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') [Provisioning]: $1" >&2
 }
 
-log "Starting KasmVNC Provisioning Script..."
+log "Starting KasmVNC Provisioning Script (fetched remotely)..."
 
 # --- Configuration ---
 # Allow overriding password via environment variable for better security
 KASM_USER="kasm_user"
 KASM_PASSWORD="${KASM_VNC_PASSWORD:-kasm_password}" # Default to 'kasm_password' if env var not set
-KASM_VERSION="1.15.0" # Pin version for reproducibility
+KASM_VERSION="1.3.4" # Pinning to the version confirmed from GitHub Assets list
 KASM_INSTALL_DIR="/opt/kasm" # Standard install location
 KASM_CONFIG_DIR="/etc/kasmvnc"
 KASM_CONFIG_FILE="${KASM_CONFIG_DIR}/kasmvnc.yaml"
@@ -31,9 +31,10 @@ KASM_INTERNAL_PROTO="https"
 VAST_SSL_CERT="/etc/ssl/certs/vast_ssl.crt"
 VAST_SSL_KEY="/etc/ssl/private/vast_ssl.key"
 
-# Construct Deb URL and Filename
-DEB_FILENAME="kasmvnc_server_jammy_${KASM_VERSION}_amd64.deb"
-DEB_URL="https://kasm-static.s3.amazonaws.com/kasmvnc/kasmvnc_server_jammy_${KASM_VERSION}_amd64.deb"
+# Construct Deb URL and Filename using GitHub Releases URL (v1.3.4)
+DEB_FILENAME="kasmvncserver_jammy_${KASM_VERSION}_amd64.deb" # <-- Using specific version 1.3.4
+# *** THIS IS THE CORRECTED DOWNLOAD URL FROM GITHUB RELEASES v1.3.4 ***
+DEB_URL="https://github.com/kasmtech/KasmVNC/releases/download/v${KASM_VERSION}/${DEB_FILENAME}"
 TEMP_DEB_PATH="/tmp/${DEB_FILENAME}"
 
 # --- Dependency Check ---
@@ -49,7 +50,7 @@ fi
 log "Required commands found."
 
 # --- KasmVNC Installation ---
-log "Starting KasmVNC v${KASM_VERSION} installation..."
+log "Starting KasmVNC v${KASM_VERSION} installation from GitHub Releases..."
 
 log "Download URL: ${DEB_URL}"
 log "Temporary download path: ${TEMP_DEB_PATH}"
@@ -57,15 +58,16 @@ log "Temporary download path: ${TEMP_DEB_PATH}"
 log "Downloading KasmVNC Server..."
 # Use curl with explicit error checking
 # -f: Fail silently (no HTML output) on HTTP errors, but return error code
-# -L: Follow redirects
+# -L: Follow redirects (IMPORTANT for GitHub Releases links)
 # -s: Silent mode (hide progress meter)
 # -S: Show error message if -s is used and it fails
 # -o: Output file
-if ! curl -fLsSo "${TEMP_DEB_PATH}" "${DEB_URL}"; then
-    log "Error: Failed to download KasmVNC package from ${DEB_URL}. curl exit code: $?. Check URL and network connectivity."
+if ! curl -fLsSo "${TEMP_DEB_PATH}" "${DEB_URL}"; then # Note the -L flag is crucial here
+    CURL_EXIT_CODE=$? # Capture the actual exit code
+    log "Error: Failed to download KasmVNC package from ${DEB_URL}. curl exit code: ${CURL_EXIT_CODE}. Check URL and network connectivity."
     # Attempt to clean up potentially incomplete download
     rm -f "${TEMP_DEB_PATH}"
-    exit 1
+    exit 1 # Exit on download failure
 fi
 log "Download complete. File saved to ${TEMP_DEB_PATH}"
 
@@ -183,37 +185,31 @@ log "Adding KasmVNC link to Instance Portal UI..."
 
 # Define the KasmVNC service details in JSON format for the portal tool
 # Use variables defined at the top
+# IMPORTANT: Ensure the JSON is correctly formatted single string for the command line tool
 KASM_PORTAL_JSON="{\"kasm\": {\"name\": \"${KASM_PORTAL_NAME}\", \"port\": ${KASM_INTERNAL_PORT}, \"proto\": \"${KASM_INTERNAL_PROTO}\"}}"
 
 # Check if the portal config tool exists
 if command -v vastai-set-portal-config &> /dev/null; then
     log "Found vastai-set-portal-config tool. Attempting to add Kasm config: ${KASM_PORTAL_JSON}"
     # Execute the command to add the KasmVNC entry
+    # The base image's entrypoint should handle setting up Jupyter links first
     if vastai-set-portal-config --add "${KASM_PORTAL_JSON}"; then
-        log "Successfully added KasmVNC entry to Instance Portal configuration."
+        log "Successfully executed vastai-set-portal-config to add KasmVNC entry."
+        # Note: We assume the tool correctly merges with existing config (Jupyter).
     else
-        log "Warning: vastai-set-portal-config command finished with an error (exit code $?). Portal link might not be added correctly."
+        PORTAL_EXIT_CODE=$?
+        log "Warning: vastai-set-portal-config command finished with a non-zero exit code: ${PORTAL_EXIT_CODE}. Portal link might not be added correctly."
         # Decide if this is a fatal error? For now, just warn.
     fi
 else
-    log "Warning: vastai-set-portal-config command not found. Cannot dynamically update Instance Portal. KasmVNC link will be missing."
-    # This is likely a significant issue if the portal is the main access method.
+    log "Error: vastai-set-portal-config command not found. Cannot dynamically update Instance Portal. KasmVNC link will be missing."
+    # This is a significant issue if the portal is the main access method. Exit non-zero.
+    exit 1
 fi
 
 # --- Final Steps ---
 # Supervisor will pick up the new kasmvnc.conf file automatically
 # when the main entrypoint script reloads or starts supervisor.
-# No explicit 'supervisorctl update' or 'reload' needed *here*.
-
-# Regarding the chmod error: Let's check if the expected script path exists
-log "Checking if this script exists at expected path: /opt/provisioning/RunViso-provisioning.sh"
-if [[ -f "/opt/provisioning/RunViso-provisioning.sh" ]]; then
-    log "Script found at /opt/provisioning/RunViso-provisioning.sh."
-else
-    log "Error/Warning: This script was NOT found at /opt/provisioning/RunViso-provisioning.sh during execution. Path might be different?"
-fi
-# No other chmod commands are present in this script. The error "chmod: cannot access '/provisioning.sh'"
-# seems unrelated to this script's content or originates from outside this script.
 
 log "KasmVNC Provisioning Script Finished Successfully."
 
