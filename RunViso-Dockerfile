@@ -68,7 +68,8 @@ RUN wget -O /tmp/kasmvncserver.deb "${KASMVNC_URL}" && \
 
 # Add a supervisor config to start KasmVNC
 # This assumes the base image's supervisor includes /etc/supervisor/conf.d
-COPY kasmvnc-supervisor.conf /etc/supervisor/conf.d/kasmvnc.conf
+# *** UPDATED FILENAME HERE ***
+COPY RunViso-Supervisord.conf /etc/supervisor/conf.d/kasmvnc.conf
 
 # Copy the setup notebook to the workspace
 COPY RunViso-Setup.ipynb /workspace/RunViso-Setup.ipynb
