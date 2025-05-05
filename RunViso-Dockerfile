@@ -3,82 +3,23 @@ FROM vastai/base-image:cuda-12.4-auto
 
 # Metadata
 LABEL maintainer="remphan1618"
-LABEL description="Vast.ai environment with KasmVNC integrated via Instance Portal, using /venv/main, and VisoMaster repo setup."
-
-# Environment variables for Instance Portal and KasmVNC
-# Register KasmVNC with the Instance Portal
-# Kasm runs on internal port 6901, Portal will proxy it
-# Format: {"<unique_key>":{"port":<internal_port>,"name":"<Display Name>"}}
-ENV PORTAL_CONFIG='{"kasm":{"port":6901,"name":"Kasm Desktop"}}'
-
-# Set Kasm user/pass (used by vncpasswd below and supervisor config)
-# IMPORTANT: Change 'password' for security if desired, or manage via Vast secrets/env vars at runtime
-ENV KASM_USER="vastai" \
-    KASM_PASS="password"
+LABEL description="Vast.ai environment - TESTING BASE SUPERVISOR AND PORTAL"
 
 # Set default working directory
 WORKDIR /workspace
 
-# Install dependencies: wget, git, KasmVNC dependencies
-# Supervisor should already be present in the base image
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    wget \
-    git \
-    # KasmVNC Dependencies (some might exist in base image)
-    libx11-6 \
-    libxext6 \
-    libxfixes3 \
-    libxi6 \
-    libxtst6 \
-    libxrender1 \
-    libxrandr2 \
-    libdbus-1-3 \
-    libgbm1 \
-    libgl1-mesa-dri \
-    libgl1-mesa-glx \
-    libfontconfig1 \
-    libfreetype6 \
-    libjpeg-turbo8 \
-    libpng16-16 \
-    libpulse0 \
-    libwebp7 \
-    libxcb-shm0 \
-    libxcb1 \
-    ca-certificates \
-    fonts-liberation \
-    lsb-release \
-    psmisc \
-    xdg-utils \
-    && \
-    # Clean up apt lists
-    rm -rf /var/lib/apt/lists/*
-
-# Install KasmVNC Server
-# *** UPDATED KasmVNC Download URL to v1.3.4 and correct filename ***
-ARG KASMVNC_URL="https://github.com/kasmtech/KasmVNC/releases/download/v1.3.4/kasmvncserver_jammy_1.3.4_amd64.deb"
-RUN wget -O /tmp/kasmvncserver.deb "${KASMVNC_URL}" && \
-    apt-get update && \
-    apt-get install -y /tmp/kasmvncserver.deb && \
-    rm /tmp/kasmvncserver.deb && \
-    rm -rf /var/lib/apt/lists/* && \
-    # Setup KasmVNC user password using vncpasswd
-    # The user 'vastai' might already exist in the base image, if not, add user creation steps
-    # This assumes /etc/kasmvnc/kasmvnc.yaml is configured for user/pass auth by default
-    echo -e "${KASM_PASS}\\n${KASM_PASS}" | /usr/bin/vncpasswd -u ${KASM_USER} /etc/kasmvnc/passwd
-
-# Add a supervisor config to start KasmVNC
-# This assumes the base image's supervisor includes /etc/supervisor/conf.d
-COPY RunViso-Supervisord.conf /etc/supervisor/conf.d/kasmvnc.conf
+# --- KasmVNC Installation and Configuration REMOVED for testing ---
 
 # Copy the setup notebook to the workspace
+# Using the version modified to show output directly in cells
 COPY RunViso-Setup.ipynb /workspace/RunViso-Setup.ipynb
-# Ensure workspace files are generally accessible/writable if needed by non-root processes later
+# Ensure workspace files are generally accessible/writable
 RUN chmod -R 777 /workspace
 
-# Expose KasmVNC internal port (Portal will proxy it based on PORTAL_CONFIG)
-EXPOSE 6901
+# --- KasmVNC Port Exposure REMOVED ---
 
-# No CMD needed - Inherit CMD/ENTRYPOINT from vastai/base-image
-# It starts Supervisor, which now also starts KasmVNC via kasmvnc-supervisor.conf.
-# The Instance Portal (Caddy) is configured via PORTAL_CONFIG.
+# --- ENTRYPOINT REVERTED TO BASE IMAGE DEFAULT ---
+# ENTRYPOINT ["/opt/instance-tools/bin/entrypoint.sh"] # This is inherited, no need to specify explicitly unless overriding
+
+# Keep the original CMD (which was likely empty or passed to the entrypoint)
+# CMD [] # Inherited from base
