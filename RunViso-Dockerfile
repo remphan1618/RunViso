@@ -1,99 +1,83 @@
-# Base Image: Jupyter Base Notebook with Python 3.10
-FROM jupyter/base-notebook:python-3.10
+# Use the Vast.ai base image with CUDA 12.4 and auto-selected drivers
+FROM vastai/base-image:cuda-12.4-auto
 
+# Metadata
 LABEL maintainer="remphan1618"
-LABEL description="RunViso Runtime: Jupyter (Python 3.10), KasmVNC, Caddy, Supervisor on Jupyter Base Image."
+LABEL description="Vast.ai environment with KasmVNC integrated via Instance Portal, using /venv/main, and VisoMaster repo setup."
 
-# The base image sets up the user 'jovyan'. Switch to root for installations.
-USER root
+# Environment variables for Instance Portal and KasmVNC
+# Register KasmVNC with the Instance Portal
+# Kasm runs on internal port 6901, Portal will proxy it
+# Format: {"<unique_key>":{"port":<internal_port>,"name":"<Display Name>"}}
+ENV PORTAL_CONFIG='{"kasm":{"port":6901,"name":"Kasm Desktop"}}'
 
-# Prevent interactive prompts
-ENV DEBIAN_FRONTEND=noninteractive
-# Set locale (often inherited, but good practice)
-ENV LANG=C.UTF-8
-# Set KasmVNC version globally (for reference, actual version is determined by the copied .deb)
-ENV KASM_VNC_VERSION=1.3.4
+# Set Kasm user/pass (used by vncpasswd below and supervisor config)
+# IMPORTANT: Change 'password' for security if desired, or manage via Vast secrets/env vars at runtime
+ENV KASM_USER="vastai" \
+    KASM_PASS="password"
 
-# Install essential system packages NOT included in the base image:
-# supervisor: For process management
-# gnupg: For adding Caddy repo key
-# KasmVNC dependencies: Based on common requirements (libwebp7 for Ubuntu 22.04 base used by recent jupyter images)
-# Caddy: Web server (installed separately below)
-# x11vnc, xvfb, xterm: For VNC server
-# curl: Needed for downloading keys/installers (still needed for Caddy)
-# ssl-cert: Provides the 'ssl-cert' group needed by KasmVNC
-# Note: git, wget are typically in the base image.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    supervisor \
-    gnupg \
-    ssl-cert \
-    # KasmVNC / X11 Dependencies
-    libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 \
-    libxcomposite1 libxcursor1 libxdamage1 libxrandr2 libxtst6 libnss3 libcups2 libxss1 libxrender1 \
-    libasound2 libpangocairo-1.0-0 libatk1.0-0 libatk-bridge2.0-0 libgtk-3-0 libgbm1 libglib2.0-0 \
-    libjpeg-turbo8 libwebp7 libfontconfig1 \
-    x11vnc \
-    xvfb \
-    xterm \
-    # Clean up apt cache immediately after primary install
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+# Set default working directory
+WORKDIR /workspace
 
-# Install Caddy (apt-get update is run here)
-RUN curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \
-    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list \
-    && apt-get update && apt-get install -y caddy \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Copy the KasmVNC .deb file from the build context
-# Use the corrected filename 'kasmvncserver_jammy_1.3.4_amd64.deb'
-COPY kasmvncserver_jammy_1.3.4_amd64.deb /tmp/kasmvnc.deb
-
-# Install KasmVNC .deb and add user to ssl-cert group
+# Install dependencies: wget, git, KasmVNC dependencies
+# Supervisor should already be present in the base image
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends /tmp/kasmvnc.deb && \
-    rm /tmp/kasmvnc.deb && \
-    # Add the default notebook user to the ssl-cert group
-    adduser ${NB_USER} ssl-cert && \
-    # Clean up apt cache again
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends \
+    wget \
+    git \
+    # KasmVNC Dependencies (some might exist in base image)
+    libx11-6 \
+    libxext6 \
+    libxfixes3 \
+    libxi6 \
+    libxtst6 \
+    libxrender1 \
+    libxrandr2 \
+    libdbus-1-3 \
+    libgbm1 \
+    libgl1-mesa-dri \
+    libgl1-mesa-glx \
+    libfontconfig1 \
+    libfreetype6 \
+    libjpeg62-turbo \
+    libpng16-16 \
+    libpulse0 \
+    libwebp6 \
+    libxcb-shm0 \
+    libxcb1 \
+    ca-certificates \
+    fonts-liberation \
+    lsb-release \
+    psmisc \
+    xdg-utils \
+    && \
+    # Clean up apt lists
+    rm -rf /var/lib/apt/lists/*
 
-# --- Miniconda installation is NO LONGER NEEDED ---
-# The base image already includes Conda (with Python 3.10) and sets up the PATH
+# Install KasmVNC Server
+ARG KASMVNC_URL="https://github.com/kasmtech/KasmVNC/releases/download/v1.4.0/kasmvncserver_jammy_1.4.0_amd64.deb"
+RUN wget -O /tmp/kasmvncserver.deb "${KASMVNC_URL}" && \
+    apt-get update && \
+    apt-get install -y /tmp/kasmvncserver.deb && \
+    rm /tmp/kasmvncserver.deb && \
+    rm -rf /var/lib/apt/lists/* && \
+    # Setup KasmVNC user password using vncpasswd
+    # The user 'vastai' might already exist in the base image, if not, add user creation steps
+    # This assumes /etc/kasmvnc/kasmvnc.yaml is configured for user/pass auth by default
+    echo -e "${KASM_PASS}\\n${KASM_PASS}" | /usr/bin/vncpasswd -u ${KASM_USER} /etc/kasmvnc/passwd
 
-# Set up directories needed by Supervisor and ensure correct permissions
-# /workspace: Standard Vast.ai persistent volume mount point (already exists in base image, owned by jovyan)
-# /var/log/supervisor: Centralized logging directory
-RUN mkdir -p /var/log/supervisor && \
-    chown -R ${NB_USER}:${NB_GID} /var/log/supervisor && \
-    # Ensure /workspace exists and has correct ownership (should be okay from base image)
-    mkdir -p /workspace && \
-    chown ${NB_USER}:${NB_GID} /workspace
+# Add a supervisor config to start KasmVNC
+# This assumes the base image's supervisor includes /etc/supervisor/conf.d
+COPY kasmvnc-supervisor.conf /etc/supervisor/conf.d/kasmvnc.conf
 
-# Copy configuration files
-# Assumes these files are in the same directory as the Dockerfile (build context root)
-COPY RunViso-Supervisord.conf /etc/supervisor/conf.d/RunViso-Supervisord.conf
-COPY RunViso-Caddyfile /etc/caddy/Caddyfile
+# Copy the setup notebook to the workspace
+COPY RunViso-Setup.ipynb /workspace/RunViso-Setup.ipynb
+# Ensure workspace files are generally accessible/writable if needed by non-root processes later
+RUN chmod -R 777 /workspace
 
-# Copy the setup notebook to the default user's workspace
-# Use NB_USER variable from base image (default: jovyan)
-COPY --chown=${NB_USER}:${NB_GID} RunViso-SetupGuide.ipynb /home/${NB_USER}/RunViso-SetupGuide.ipynb
-
-# Default KasmVNC port
+# Expose KasmVNC internal port (Portal will proxy it based on PORTAL_CONFIG)
 EXPOSE 6901
-# Default Jupyter internal port (already exposed by base image, but doesn't hurt)
-EXPOSE 8888
-# Default Caddy internal port (will be mapped by Vast.ai)
-EXPOSE 11111
 
-# Switch back to the default notebook user
-USER ${NB_USER}
-
-# Set working directory (usually /home/jovyan in base image)
-WORKDIR /home/${NB_USER}
-
-# Start supervisord as root (necessary to manage services like Caddy/KasmVNC)
-# We override the base image's CMD which usually starts JupyterLab directly.
-# Supervisor will now be responsible for starting JupyterLab, Caddy, KasmVNC.
-USER root
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/RunViso-Supervisord.conf", "--nodaemon"]
+# No CMD needed - Inherit CMD/ENTRYPOINT from vastai/base-image
+# It starts Supervisor, which now also starts KasmVNC via kasmvnc-supervisor.conf.
+# The Instance Portal (Caddy) is configured via PORTAL_CONFIG.
