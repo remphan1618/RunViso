@@ -26,14 +26,14 @@ KASM_SUPERVISOR_CONF="/etc/supervisor/conf.d/kasmvnc.conf"
 KASM_PORTAL_NAME="Kasm Desktop"
 KASM_INTERNAL_PORT="6901" # Default KasmVNC HTTPS port
 KASM_INTERNAL_PROTO="https"
+PORTAL_CONFIG_FILE="/etc/portal.yaml" # The target configuration file
 
 # Vast.ai provided SSL certificate and key paths
 VAST_SSL_CERT="/etc/ssl/certs/vast_ssl.crt"
 VAST_SSL_KEY="/etc/ssl/private/vast_ssl.key"
 
 # Construct Deb URL and Filename using GitHub Releases URL (v1.3.4)
-DEB_FILENAME="kasmvncserver_jammy_${KASM_VERSION}_amd64.deb" # <-- Using specific version 1.3.4
-# *** THIS IS THE CORRECTED DOWNLOAD URL FROM GITHUB RELEASES v1.3.4 ***
+DEB_FILENAME="kasmvncserver_jammy_${KASM_VERSION}_amd64.deb"
 DEB_URL="https://github.com/kasmtech/KasmVNC/releases/download/v${KASM_VERSION}/${DEB_FILENAME}"
 TEMP_DEB_PATH="/tmp/${DEB_FILENAME}"
 
@@ -180,38 +180,45 @@ priority=950
 EOF
 log "Supervisor configuration for KasmVNC created."
 
-# --- Update Instance Portal ---
-log "Adding KasmVNC link to Instance Portal UI..."
+# --- Update Instance Portal Configuration File ---
+# *** REVISED APPEND APPROACH ***
+log "Adding KasmVNC link to Instance Portal by appending to ${PORTAL_CONFIG_FILE}..."
 
-# Define the KasmVNC service details in JSON format for the portal tool
-# Use variables defined at the top
-# IMPORTANT: Ensure the JSON is correctly formatted single string for the command line tool
-KASM_PORTAL_JSON="{\"kasm\": {\"name\": \"${KASM_PORTAL_NAME}\", \"port\": ${KASM_INTERNAL_PORT}, \"proto\": \"${KASM_INTERNAL_PROTO}\"}}"
-
-# Check if the portal config tool exists
-if command -v vastai-set-portal-config &> /dev/null; then
-    log "Found vastai-set-portal-config tool. Attempting to add Kasm config: ${KASM_PORTAL_JSON}"
-    # Execute the command to add the KasmVNC entry
-    # The base image's entrypoint should handle setting up Jupyter links first
-    if vastai-set-portal-config --add "${KASM_PORTAL_JSON}"; then
-        log "Successfully executed vastai-set-portal-config to add KasmVNC entry."
-        # Note: We assume the tool correctly merges with existing config (Jupyter).
-    else
-        PORTAL_EXIT_CODE=$?
-        log "Warning: vastai-set-portal-config command finished with a non-zero exit code: ${PORTAL_EXIT_CODE}. Portal link might not be added correctly."
-        # Decide if this is a fatal error? For now, just warn.
-    fi
+# Check if the file exists first. If not, log a warning as entrypoint.sh might create it later.
+if [[ ! -f "${PORTAL_CONFIG_FILE}" ]]; then
+    # This case *shouldn't* happen if entrypoint.sh runs before provisioning script gets here.
+    log "Critical Warning: ${PORTAL_CONFIG_FILE} does not exist. Cannot append Kasm config reliably. Check entrypoint.sh execution order."
+    # Do not attempt to create the file here, as entrypoint.sh will likely overwrite it.
 else
-    log "Error: vastai-set-portal-config command not found. Cannot dynamically update Instance Portal. KasmVNC link will be missing."
-    # This is a significant issue if the portal is the main access method. Exit non-zero.
-    exit 1
+    # File exists, proceed with append.
+    # Check if the 'applications:' key exists. If not, something is wrong with the base file.
+    if ! grep -q "^applications:" "${PORTAL_CONFIG_FILE}"; then
+        log "Critical Warning: ${PORTAL_CONFIG_FILE} exists but lacks 'applications:' key. Cannot append Kasm config correctly."
+    else
+        # Create the YAML block to append. Ensure indentation is exactly two spaces.
+        # Use printf for reliable formatting, especially with newlines.
+        KASM_YAML_BLOCK=$(printf '\n%s\n%s\n%s\n%s' \
+          "  kasm:" \
+          "    name: \"${KASM_PORTAL_NAME}\"" \
+          "    port: ${KASM_INTERNAL_PORT}" \
+          "    proto: ${KASM_INTERNAL_PROTO}")
+
+        log "Appending Kasm entry YAML block to ${PORTAL_CONFIG_FILE}..."
+        # Append the block using printf output redirection.
+        printf '%s\n' "${KASM_YAML_BLOCK}" >> "${PORTAL_CONFIG_FILE}"
+        log "Append operation finished."
+
+        # Verify the append (optional logging)
+        log "Current content of ${PORTAL_CONFIG_FILE} (or end of it):"
+        tail "${PORTAL_CONFIG_FILE}" | while IFS= read -r line; do log "  ${line}"; done # Log last few lines
+    fi
 fi
 
 # --- Final Steps ---
-# Supervisor will pick up the new kasmvnc.conf file automatically
-# when the main entrypoint script reloads or starts supervisor.
+# The main entrypoint.sh should eventually start supervisord, which starts instance_portal.
+# instance_portal will read the modified /etc/portal.yaml.
 
-log "KasmVNC Provisioning Script Finished Successfully."
+log "KasmVNC Provisioning Script Finished."
 
 # Exit with 0 to indicate success to the entrypoint script
 exit 0
