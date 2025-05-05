@@ -11,7 +11,7 @@ USER root
 ENV DEBIAN_FRONTEND=noninteractive
 # Set locale (often inherited, but good practice)
 ENV LANG=C.UTF-8
-# Set KasmVNC version globally (Updated to 1.3.4)
+# Set KasmVNC version globally
 ENV KASM_VNC_VERSION=1.3.4
 
 # Install essential system packages NOT included in the base image:
@@ -21,11 +21,13 @@ ENV KASM_VNC_VERSION=1.3.4
 # Caddy: Web server (installed separately below)
 # x11vnc, xvfb, xterm: For VNC server
 # curl: Needed for downloading keys/installers
+# ssl-cert: Provides the 'ssl-cert' group needed by KasmVNC
 # Note: git, wget are typically in the base image.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     supervisor \
     gnupg \
+    ssl-cert \
     # KasmVNC / X11 Dependencies
     libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 \
     libxcomposite1 libxcursor1 libxdamage1 libxrandr2 libxtst6 libnss3 libcups2 libxss1 libxrender1 \
@@ -43,13 +45,16 @@ RUN curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --de
     && apt-get update && apt-get install -y caddy \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install KasmVNC using curl (Updated to v1.3.4)
-# Hardcode the full URL directly in the curl command
-RUN curl -fL "https://github.com/kasmtech/KasmVNC/releases/download/v1.3.4/kasmvnc_ubuntu_jammy_1.3.4_amd64.deb" -o /tmp/kasmvnc.deb && \
+# Install KasmVNC using curl (v1.3.4) and add user to ssl-cert group
+# Use -1sLf flags matching the Caddy download
+RUN curl -1sLf "https://github.com/kasmtech/KasmVNC/releases/download/v1.3.4/kasmvnc_ubuntu_jammy_1.3.4_amd64.deb" -o /tmp/kasmvnc.deb && \
     # Run apt-get update *before* installing the local deb
     apt-get update && \
     apt-get install -y --no-install-recommends /tmp/kasmvnc.deb && \
     rm /tmp/kasmvnc.deb && \
+    # Add the default notebook user to the ssl-cert group
+    # The NB_USER variable (e.g., jovyan) is available from the base image
+    adduser ${NB_USER} ssl-cert && \
     # Clean up apt cache again
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
