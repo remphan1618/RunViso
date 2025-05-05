@@ -3,12 +3,11 @@ name: Build RunViso Runtime Image
 on:
   push:
     branches: [ main ] # Or your default branch
-    # Trigger only if the RunViso files in the root directory change
+    # Trigger only if files relevant to the RunViso Docker image change
     paths:
       - 'RunViso-Dockerfile'
-      - 'RunViso-Supervisord.conf'
-      - 'RunViso-Caddyfile'
-      - 'RunViso-SetupGuide.ipynb'
+      - 'RunViso-provisioning.sh'         # <-- Added provisioning script
+      - 'RunViso-Setup.ipynb'             # <-- Corrected notebook name and added
       - '.github/workflows/build-runviso.yml' # Also trigger if the workflow itself changes
   workflow_dispatch: # Allows manual triggering
 
@@ -28,18 +27,20 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          # Use your GitHub repository secrets for credentials
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push RunViso image
+        id: docker_build # Add an ID to reference outputs if needed
         uses: docker/build-push-action@v5
         with:
           context: . # Build context is the root
           file: ./RunViso-Dockerfile # Point to the Dockerfile in the root
           push: true
-          tags: remphan/runviso:latest # Use the correct repo name in the tag
-          no-cache: true # Ignore build cache to resolve potential inconsistencies
+          tags: remphan1618/runviso:latest # Using the tag from the log, adjust if needed
           # Optional: Add build args if needed
           # build-args: |
           #   SOME_ARG=value
+          # Optional: Enable Docker layer caching for faster builds
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
