@@ -23,10 +23,7 @@ KASM_INSTALL_DIR="/opt/kasm" # Standard install location
 KASM_CONFIG_DIR="/etc/kasmvnc"
 KASM_CONFIG_FILE="${KASM_CONFIG_DIR}/kasmvnc.yaml"
 KASM_SUPERVISOR_CONF="/etc/supervisor/conf.d/kasmvnc.conf"
-KASM_PORTAL_NAME="Kasm Desktop"
 KASM_INTERNAL_PORT="6901" # Default KasmVNC HTTPS port
-KASM_INTERNAL_PROTO="https"
-PORTAL_CONFIG_FILE="/etc/portal.yaml" # The target configuration file
 
 # Vast.ai provided SSL certificate and key paths
 VAST_SSL_CERT="/etc/ssl/certs/vast_ssl.crt"
@@ -179,24 +176,6 @@ stderr_logfile_maxbytes=0
 priority=950
 EOF
 log "Supervisor configuration for KasmVNC created."
-
-# --- Update Instance Portal Configuration File ---
-log "Reconfiguring Instance Portal..."
-
-# Remove existing portal.yaml file
-log "Removing existing portal configuration file: ${PORTAL_CONFIG_FILE}"
-rm -f "${PORTAL_CONFIG_FILE}"
-
-# Set the complete portal configuration
-log "Setting portal configuration..."
-PORTAL_CONFIG="localhost:1111:11111:/:Instance Portal|localhost:7860:17860:/:AUTOMATIC1111 WebUI|localhost:8080:18080:/:Jupyter|localhost:8080:18080:/terminals/1:Jupyter Terminal|localhost:8384:18384:/:Syncthing|localhost:6901:6901:/:Kasm Desktop"
-
-# Create new portal.yaml with the configuration
-# The format of portal.yaml depends on how instance_portal service reads it
-# This is a simplified approach - adjust if needed to match the expected format
-log "Creating new portal configuration file: ${PORTAL_CONFIG_FILE}"
-echo "${PORTAL_CONFIG}" > "${PORTAL_CONFIG_FILE}"
-log "Portal configuration updated."
 
 # --- Final Steps ---
 # Reload Supervisor to apply changes
