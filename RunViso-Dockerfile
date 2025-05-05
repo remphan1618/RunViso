@@ -36,17 +36,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Caddy
-# Now that curl is installed, this step should work
 RUN curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \
     && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list \
     && apt-get update && apt-get install -y caddy \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install KasmVNC
-# Note: The base image might not have HOME set for root, use /tmp directly
+# Corrected filename: kasmvnc_ubuntu_jammy_1.3.1_amd64.deb
 ENV KASM_VNC_VERSION=1.3.1
-# Using wget here as it seems present in the base image, but curl could also be used now
-RUN wget "https://github.com/kasmtech/KasmVNC/releases/download/v${KASM_VNC_VERSION}/KasmVNC_ubuntu_22.04_${KASM_VNC_VERSION}_amd64.deb" -O /tmp/kasmvnc.deb && \
+RUN KASM_DEB_FILENAME="kasmvnc_ubuntu_jammy_${KASM_VNC_VERSION}_amd64.deb" && \
+    wget "https://github.com/kasmtech/KasmVNC/releases/download/v${KASM_VNC_VERSION}/${KASM_DEB_FILENAME}" -O /tmp/kasmvnc.deb && \
     apt-get update && apt-get install -y --no-install-recommends /tmp/kasmvnc.deb && \
     rm /tmp/kasmvnc.deb && \
     # Clean up apt cache again
