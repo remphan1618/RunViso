@@ -1,0 +1,85 @@
+# Base Image: Ubuntu 22.04
+FROM ubuntu:22.04
+
+LABEL maintainer="remphan1618"
+LABEL description="VisoMaster Runtime Setup: Minimal base with Jupyter, KasmVNC, Caddy, Supervisor."
+
+# Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+# Set locale to avoid issues with some tools
+ENV LANG C.UTF-8
+
+# Install essential packages:
+# wget/curl: For downloading installers/keys
+# ca-certificates: For HTTPS connections
+# supervisor: For process management
+# gnupg: For adding Caddy repo key
+# KasmVNC dependencies: Based on common requirements
+# python3-pip: System pip (optional, can be removed if not needed)
+# git: Still useful for user within Jupyter, keep it for now.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    wget \
+    curl \
+    ca-certificates \
+    supervisor \
+    gnupg \
+    libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 \
+    libxcomposite1 libxcursor1 libxdamage1 libxrandr2 libxtst6 libnss3 libcups2 libxss1 libxrender1 \
+    libasound2 libpangocairo-1.0-0 libatk1.0-0 libatk-bridge2.0-0 libgtk-3-0 libgbm1 libglib2.0-0 \
+    libjpeg-turbo8 libwebp6 libfontconfig1 \
+    x11vnc \
+    xvfb \
+    xterm \
+    # python3-pip \
+    # Clean up apt cache
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install Caddy
+RUN curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \
+    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list \
+    && apt-get update && apt-get install -y caddy \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install Miniconda
+ENV CONDA_DIR /opt/conda
+ENV PATH $CONDA_DIR/bin:$PATH
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py310_23.11.0-2-Linux-x86_64.sh -O ~/miniconda.sh && \
+    /bin/bash ~/miniconda.sh -b -p $CONDA_DIR && \
+    rm ~/miniconda.sh && \
+    # Initialize conda for bash environments
+    $CONDA_DIR/bin/conda init bash && \
+    # Perform immediate cleanup
+    $CONDA_DIR/bin/conda clean -tipsy
+
+# Install KasmVNC
+ENV KASM_VNC_VERSION=1.3.1
+RUN wget "https://github.com/kasmtech/KasmVNC/releases/download/v${KASM_VNC_VERSION}/KasmVNC_ubuntu_22.04_${KASM_VNC_VERSION}_amd64.deb" -O /tmp/kasmvnc.deb && \
+    apt-get update && apt-get install -y --no-install-recommends /tmp/kasmvnc.deb && \
+    rm /tmp/kasmvnc.deb && \
+    # Clean up apt cache again
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Set up directories
+# /workspace: Standard Vast.ai persistent volume mount point
+# /var/log/supervisor: Centralized logging directory
+RUN mkdir -p /workspace /var/log/supervisor
+
+# Copy configuration files AND the setup notebook
+# Assumes these files are in the same directory as the Dockerfile (build context root)
+COPY RunViso-Supervisord.conf /etc/supervisor/conf.d/RunViso-Supervisord.conf
+COPY RunViso-Caddyfile /etc/caddy/Caddyfile
+COPY RunViso-SetupGuide.ipynb /workspace/RunViso-SetupGuide.ipynb # Copy Notebook directly
+
+# Default KasmVNC port
+EXPOSE 6901
+# Default Jupyter internal port
+EXPOSE 8888
+# Default Caddy internal port (will be mapped by Vast.ai)
+EXPOSE 11111
+
+# Set working directory
+WORKDIR /workspace
+
+# Start supervisord
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/RunViso-Supervisord.conf", "--nodaemon"]

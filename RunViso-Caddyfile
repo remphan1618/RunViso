@@ -1,0 +1,52 @@
+{
+    # Enable Vast.ai Portal integration via environment variables
+    order portal before respond
+    admin off # Disable Caddy admin API for security
+}
+
+# Listen on the internal port specified in PORTAL_CONFIG (default 11111)
+:{$PORT:-11111} {
+
+    # Apply Vast.ai Portal middleware
+    portal {
+        config {$PORTAL_CONFIG}
+    }
+
+    # --- Define Backend Services for Caddy to Proxy To ---
+
+    # Reverse proxy for KasmVNC (running on 6901)
+    handle /vnc/* {
+        reverse_proxy localhost:6901 {
+            header_up Host {http.request.host}
+            header_up X-Real-IP {http.request.remote.addr}
+            header_up X-Forwarded-For {http.request.remote.addr}
+            header_up X-Forwarded-Proto {http.request.scheme}
+        }
+    }
+
+    # Reverse proxy for Jupyter Lab (running on 8888)
+    handle /jupyter/* {
+        reverse_proxy localhost:8888 {
+            header_up Host {http.request.host}
+            header_up X-Real-IP {http.request.remote.addr}
+            header_up X-Forwarded-For {http.request.remote.addr}
+            header_up X-Forwarded-Proto {http.request.scheme}
+        }
+    }
+
+    # Serve logs directory
+    handle /logs/* {
+        root * /var/log/supervisor
+        file_server browse
+    }
+
+    # Standard logging and encoding
+    encode gzip zstd
+    log {
+        output file /var/log/supervisor/caddy_access.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+        level INFO
+    }
+}
