@@ -181,42 +181,28 @@ EOF
 log "Supervisor configuration for KasmVNC created."
 
 # --- Update Instance Portal Configuration File ---
-# *** REVISED APPEND APPROACH ***
-log "Adding KasmVNC link to Instance Portal by appending to ${PORTAL_CONFIG_FILE}..."
+log "Reconfiguring Instance Portal..."
 
-# Check if the file exists first. If not, log a warning as entrypoint.sh might create it later.
-if [[ ! -f "${PORTAL_CONFIG_FILE}" ]]; then
-    # This case *shouldn't* happen if entrypoint.sh runs before provisioning script gets here.
-    log "Critical Warning: ${PORTAL_CONFIG_FILE} does not exist. Cannot append Kasm config reliably. Check entrypoint.sh execution order."
-    # Do not attempt to create the file here, as entrypoint.sh will likely overwrite it.
-else
-    # File exists, proceed with append.
-    # Check if the 'applications:' key exists. If not, something is wrong with the base file.
-    if ! grep -q "^applications:" "${PORTAL_CONFIG_FILE}"; then
-        log "Critical Warning: ${PORTAL_CONFIG_FILE} exists but lacks 'applications:' key. Cannot append Kasm config correctly."
-    else
-        # Create the YAML block to append. Ensure indentation is exactly two spaces.
-        # Use printf for reliable formatting, especially with newlines.
-        KASM_YAML_BLOCK=$(printf '\n%s\n%s\n%s\n%s' \
-          "  kasm:" \
-          "    name: \"${KASM_PORTAL_NAME}\"" \
-          "    port: ${KASM_INTERNAL_PORT}" \
-          "    proto: ${KASM_INTERNAL_PROTO}")
+# Remove existing portal.yaml file
+log "Removing existing portal configuration file: ${PORTAL_CONFIG_FILE}"
+rm -f "${PORTAL_CONFIG_FILE}"
 
-        log "Appending Kasm entry YAML block to ${PORTAL_CONFIG_FILE}..."
-        # Append the block using printf output redirection.
-        printf '%s\n' "${KASM_YAML_BLOCK}" >> "${PORTAL_CONFIG_FILE}"
-        log "Append operation finished."
+# Set the complete portal configuration
+log "Setting portal configuration..."
+PORTAL_CONFIG="localhost:1111:11111:/:Instance Portal|localhost:7860:17860:/:AUTOMATIC1111 WebUI|localhost:8080:18080:/:Jupyter|localhost:8080:18080:/terminals/1:Jupyter Terminal|localhost:8384:18384:/:Syncthing|localhost:6901:6901:/:Kasm Desktop"
 
-        # Verify the append (optional logging)
-        log "Current content of ${PORTAL_CONFIG_FILE} (or end of it):"
-        tail "${PORTAL_CONFIG_FILE}" | while IFS= read -r line; do log "  ${line}"; done # Log last few lines
-    fi
-fi
+# Create new portal.yaml with the configuration
+# The format of portal.yaml depends on how instance_portal service reads it
+# This is a simplified approach - adjust if needed to match the expected format
+log "Creating new portal configuration file: ${PORTAL_CONFIG_FILE}"
+echo "${PORTAL_CONFIG}" > "${PORTAL_CONFIG_FILE}"
+log "Portal configuration updated."
 
 # --- Final Steps ---
-# The main entrypoint.sh should eventually start supervisord, which starts instance_portal.
-# instance_portal will read the modified /etc/portal.yaml.
+# Reload Supervisor to apply changes
+log "Reloading Supervisor to apply changes..."
+supervisorctl reload
+log "Supervisor reloaded."
 
 log "KasmVNC Provisioning Script Finished."
 
