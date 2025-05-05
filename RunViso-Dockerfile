@@ -23,35 +23,5 @@ RUN apt-get update && apt-get install -y curl && \
     apt-get install -y /tmp/${KASM_DEB} && rm -f /tmp/${KASM_DEB} && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Create default KasmVNC config file (optional, command line overrides)
-RUN mkdir -p /etc/kasmvnc && \
-    cat << EOF > /etc/kasmvnc/kasmvnc.yaml
-# Basic KasmVNC configuration
-desktop:
-  resolution:
-    width: 1920
-    height: 1080
-  allow_resize: true
-network:
-  protocol: http
-  interface: 0.0.0.0
-  websocket_port: auto
-  ssl:
-    pem_certificate: /etc/ssl/certs/vast_ssl.crt
-    pem_key: /etc/ssl/private/vast_ssl.key
-    require_ssl: true
-security:
-  brute_force_protection:
-    blacklist_threshold: 5
-    blacklist_timeout: 10
-data_loss_prevention:
-  clipboard:
-    server_to_client:
-      enabled: true
-    client_to_server:
-      enabled: true
-  keyboard:
-EOF
-
 WORKDIR /workspace
 EXPOSE 6901 11111 18080

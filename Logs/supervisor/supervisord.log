@@ -1,0 +1,63 @@
+2025-05-05 10:12:54,638 INFO Included extra file "/etc/supervisor/conf.d/caddy.conf" during parsing
+2025-05-05 10:12:54,638 INFO Included extra file "/etc/supervisor/conf.d/cron.conf" during parsing
+2025-05-05 10:12:54,638 INFO Included extra file "/etc/supervisor/conf.d/instance_portal.conf" during parsing
+2025-05-05 10:12:54,638 INFO Included extra file "/etc/supervisor/conf.d/jupyter.conf" during parsing
+2025-05-05 10:12:54,638 INFO Included extra file "/etc/supervisor/conf.d/syncthing.conf" during parsing
+2025-05-05 10:12:54,638 INFO Included extra file "/etc/supervisor/conf.d/tensorboard.conf" during parsing
+2025-05-05 10:12:54,638 INFO Included extra file "/etc/supervisor/conf.d/tunnel_manager.conf" during parsing
+2025-05-05 10:12:54,638 INFO Set uid to user 0 succeeded
+2025-05-05 10:12:54,641 INFO RPC interface 'supervisor' initialized
+2025-05-05 10:12:54,641 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2025-05-05 10:12:54,641 INFO supervisord started with pid 611
+2025-05-05 10:12:55,644 INFO spawned: 'caddy' with pid 628
+2025-05-05 10:12:55,647 INFO spawned: 'cron' with pid 629
+2025-05-05 10:12:55,649 INFO spawned: 'instance_portal' with pid 630
+2025-05-05 10:12:55,651 INFO spawned: 'jupyter' with pid 633
+2025-05-05 10:12:55,652 INFO spawned: 'syncthing' with pid 634
+2025-05-05 10:12:55,653 INFO spawned: 'tensorboard' with pid 635
+2025-05-05 10:12:55,655 INFO spawned: 'tunnel_manager' with pid 636
+2025-05-05 10:12:55,661 INFO success: caddy entered RUNNING state, process has stayed up for > than 0 seconds (startsecs)
+2025-05-05 10:12:55,661 INFO success: cron entered RUNNING state, process has stayed up for > than 0 seconds (startsecs)
+2025-05-05 10:12:55,661 INFO success: instance_portal entered RUNNING state, process has stayed up for > than 0 seconds (startsecs)
+2025-05-05 10:12:55,661 INFO success: jupyter entered RUNNING state, process has stayed up for > than 0 seconds (startsecs)
+2025-05-05 10:12:55,661 INFO success: syncthing entered RUNNING state, process has stayed up for > than 0 seconds (startsecs)
+2025-05-05 10:12:55,661 INFO success: tensorboard entered RUNNING state, process has stayed up for > than 0 seconds (startsecs)
+2025-05-05 10:12:55,661 INFO success: tunnel_manager entered RUNNING state, process has stayed up for > than 0 seconds (startsecs)
+2025-05-05 10:12:55,663 INFO exited: jupyter (exit status 0; expected)
+2025-05-05 10:12:56,676 INFO exited: tensorboard (exit status 0; expected)
+2025-05-05 10:13:07,484 INFO waiting for caddy, cron, instance_portal, syncthing, tunnel_manager to die
+2025-05-05 10:13:07,485 INFO stopped: tunnel_manager (terminated by SIGTERM)
+2025-05-05 10:13:07,496 INFO stopped: syncthing (terminated by SIGTERM)
+2025-05-05 10:13:07,589 INFO stopped: instance_portal (terminated by SIGTERM)
+2025-05-05 10:13:07,590 INFO stopped: cron (terminated by SIGTERM)
+2025-05-05 10:13:07,591 INFO stopped: caddy (terminated by SIGTERM)
+2025-05-05 10:13:07,604 INFO Included extra file "/etc/supervisor/conf.d/caddy.conf" during parsing
+2025-05-05 10:13:07,604 INFO Included extra file "/etc/supervisor/conf.d/cron.conf" during parsing
+2025-05-05 10:13:07,604 INFO Included extra file "/etc/supervisor/conf.d/instance_portal.conf" during parsing
+2025-05-05 10:13:07,604 INFO Included extra file "/etc/supervisor/conf.d/jupyter.conf" during parsing
+2025-05-05 10:13:07,604 INFO Included extra file "/etc/supervisor/conf.d/kasmvnc.conf" during parsing
+2025-05-05 10:13:07,604 INFO Included extra file "/etc/supervisor/conf.d/syncthing.conf" during parsing
+2025-05-05 10:13:07,604 INFO Included extra file "/etc/supervisor/conf.d/tensorboard.conf" during parsing
+2025-05-05 10:13:07,604 INFO Included extra file "/etc/supervisor/conf.d/tunnel_manager.conf" during parsing
+2025-05-05 10:13:07,604 INFO Set uid to user 0 succeeded
+2025-05-05 10:13:07,605 INFO RPC interface 'supervisor' initialized
+2025-05-05 10:13:07,605 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2025-05-05 10:13:07,605 INFO supervisord started with pid 611
+2025-05-05 10:13:08,609 INFO spawned: 'kasmvnc' with pid 1961
+2025-05-05 10:13:08,611 INFO spawned: 'caddy' with pid 1962
+2025-05-05 10:13:08,614 INFO spawned: 'cron' with pid 1963
+2025-05-05 10:13:08,616 INFO spawned: 'instance_portal' with pid 1964
+2025-05-05 10:13:08,618 INFO spawned: 'jupyter' with pid 1965
+2025-05-05 10:13:08,620 INFO spawned: 'syncthing' with pid 1966
+2025-05-05 10:13:08,621 INFO spawned: 'tensorboard' with pid 1969
+2025-05-05 10:13:08,623 INFO spawned: 'tunnel_manager' with pid 1971
+2025-05-05 10:13:08,631 INFO success: caddy entered RUNNING state, process has stayed up for > than 0 seconds (startsecs)
+2025-05-05 10:13:08,631 INFO success: cron entered RUNNING state, process has stayed up for > than 0 seconds (startsecs)
+2025-05-05 10:13:08,631 INFO success: instance_portal entered RUNNING state, process has stayed up for > than 0 seconds (startsecs)
+2025-05-05 10:13:08,631 INFO success: jupyter entered RUNNING state, process has stayed up for > than 0 seconds (startsecs)
+2025-05-05 10:13:08,631 INFO success: syncthing entered RUNNING state, process has stayed up for > than 0 seconds (startsecs)
+2025-05-05 10:13:08,631 INFO success: tensorboard entered RUNNING state, process has stayed up for > than 0 seconds (startsecs)
+2025-05-05 10:13:08,631 INFO success: tunnel_manager entered RUNNING state, process has stayed up for > than 0 seconds (startsecs)
+2025-05-05 10:13:08,631 INFO exited: jupyter (exit status 0; expected)
+2025-05-05 10:13:08,639 INFO exited: tensorboard (exit status 0; expected)
+2025-05-05 10:13:18,858 INFO success: kasmvnc entered RUNNING state, process has stayed up for > than 10 seconds (startsecs)
