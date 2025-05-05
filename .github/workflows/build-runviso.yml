@@ -38,7 +38,7 @@ jobs:
           context: . # Build context is the root
           file: ./RunViso-Dockerfile # Point to the Dockerfile in the root
           push: true
-          tags: remphan1618/runviso:latest # Use the correct repo name in the tag
+          tags: remphan/runviso:latest # Use the correct repo name in the tag
           no-cache: true # Ignore build cache to resolve potential inconsistencies
           # Optional: Add build args if needed
           # build-args: |
