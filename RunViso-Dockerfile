@@ -39,10 +39,12 @@ RUN apt-get update && \
     libgl1-mesa-glx \
     libfontconfig1 \
     libfreetype6 \
-    libjpeg62-turbo \
+    # *** UPDATED Package Names for Ubuntu 22.04 (Jammy) ***
+    libjpeg-turbo8 \
     libpng16-16 \
     libpulse0 \
-    libwebp6 \
+    # *** UPDATED Package Names for Ubuntu 22.04 (Jammy) ***
+    libwebp7 \
     libxcb-shm0 \
     libxcb1 \
     ca-certificates \
@@ -68,7 +70,6 @@ RUN wget -O /tmp/kasmvncserver.deb "${KASMVNC_URL}" && \
 
 # Add a supervisor config to start KasmVNC
 # This assumes the base image's supervisor includes /etc/supervisor/conf.d
-# *** UPDATED FILENAME HERE ***
 COPY RunViso-Supervisord.conf /etc/supervisor/conf.d/kasmvnc.conf
 
 # Copy the setup notebook to the workspace
