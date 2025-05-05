@@ -37,7 +37,7 @@ jobs:
           context: . # Build context is the root
           file: ./RunViso-Dockerfile # Point to the new Dockerfile in the root
           push: true
-          tags: remphan1618/godviso:runviso-latest # Use a new tag for this image
+          tags: remphan1618/RunViso:runviso-latest # Use a new tag for this image
           # Optional: Add build args if needed
           # build-args: |
           #   SOME_ARG=value
