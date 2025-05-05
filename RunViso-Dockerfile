@@ -1,25 +1,29 @@
-# Use the Vast.ai base image with CUDA 12.4 and auto-selected drivers
+# Use the Vast.ai base image with CUDA (auto-selected drivers recommended)
+# Example: Use a specific CUDA version if needed, otherwise use a general one
 FROM vastai/base-image:cuda-12.4-auto
 
 # Metadata
 LABEL maintainer="remphan1618"
-LABEL description="Vast.ai environment - TESTING BASE SUPERVISOR AND PORTAL"
+LABEL description="Vast.ai environment with KasmVNC installed via provisioning script"
 
 # Set default working directory
 WORKDIR /workspace
 
-# --- KasmVNC Installation and Configuration REMOVED for testing ---
+# Copy the provisioning script to a location accessible by the entrypoint
+COPY RunViso-provisioning.sh /opt/provisioning/RunViso-provisioning.sh
+# Make the script executable
+RUN chmod +x /opt/provisioning/RunViso-provisioning.sh
 
-# Copy the setup notebook to the workspace
-# Using the version modified to show output directly in cells
+# Copy the setup notebook (optional, but good practice)
 COPY RunViso-Setup.ipynb /workspace/RunViso-Setup.ipynb
 # Ensure workspace files are generally accessible/writable
 RUN chmod -R 777 /workspace
 
-# --- KasmVNC Port Exposure REMOVED ---
+# Expose KasmVNC's default HTTPS port (will be mapped by Vast.ai)
+# This is informational for Docker, Vast.ai handles the actual mapping via template/CLI
+EXPOSE 6901
 
-# --- ENTRYPOINT REVERTED TO BASE IMAGE DEFAULT ---
-# ENTRYPOINT ["/opt/instance-tools/bin/entrypoint.sh"] # This is inherited, no need to specify explicitly unless overriding
-
-# Keep the original CMD (which was likely empty or passed to the entrypoint)
-# CMD [] # Inherited from base
+# The base image's ENTRYPOINT and CMD are inherited and will be used.
+# ENTRYPOINT ["/opt/instance-tools/bin/entrypoint.sh"]
+# CMD []
+# The entrypoint.sh will execute scripts in /opt/provisioning/ during startup.
