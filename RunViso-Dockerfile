@@ -6,24 +6,52 @@ FROM vastai/base-image:cuda-12.4-auto
 LABEL maintainer="remphan1618"
 LABEL description="Vast.ai environment with KasmVNC installed via provisioning script"
 
-# Set default working directory
+ARG KASM_VERSION="1.3.4"
+ARG KASM_DEB="kasmvncserver_jammy_${KASM_VERSION}_amd64.deb"
+ARG KASM_URL="https://github.com/kasmtech/KasmVNC/releases/download/v${KASM_VERSION}/${KASM_DEB}"
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install X11 dependencies first
+RUN apt-get update && apt-get install -y \
+    xfce4 xfce4-goodies xterm xorg dbus-x11 xvfb \
+    x11-xserver-utils x11-utils x11-apps
+
+# Install KasmVNC
+RUN apt-get update && apt-get install -y curl && \
+    curl -fLsSo /tmp/${KASM_DEB} ${KASM_URL} && \
+    apt-get install -y /tmp/${KASM_DEB} && rm -f /tmp/${KASM_DEB} && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Create default KasmVNC config file (optional, command line overrides)
+RUN mkdir -p /etc/kasmvnc && \
+    cat << EOF > /etc/kasmvnc/kasmvnc.yaml
+# Basic KasmVNC configuration
+desktop:
+  resolution:
+    width: 1920
+    height: 1080
+  allow_resize: true
+network:
+  protocol: http
+  interface: 0.0.0.0
+  websocket_port: auto
+  ssl:
+    pem_certificate: /etc/ssl/certs/vast_ssl.crt
+    pem_key: /etc/ssl/private/vast_ssl.key
+    require_ssl: true
+security:
+  brute_force_protection:
+    blacklist_threshold: 5
+    blacklist_timeout: 10
+data_loss_prevention:
+  clipboard:
+    server_to_client:
+      enabled: true
+    client_to_server:
+      enabled: true
+  keyboard:
+EOF
+
 WORKDIR /workspace
-
-# Copy the provisioning script to a location accessible by the entrypoint
-COPY RunViso-provisioning.sh /opt/provisioning/RunViso-provisioning.sh
-# Make the script executable
-RUN chmod +x /opt/provisioning/RunViso-provisioning.sh
-
-# Copy the setup notebook (optional, but good practice)
-COPY RunViso-Setup.ipynb /workspace/RunViso-Setup.ipynb
-# Ensure workspace files are generally accessible/writable
-RUN chmod -R 777 /workspace
-
-# Expose KasmVNC's default HTTPS port (will be mapped by Vast.ai)
-# This is informational for Docker, Vast.ai handles the actual mapping via template/CLI
-EXPOSE 6901
-
-# The base image's ENTRYPOINT and CMD are inherited and will be used.
-# ENTRYPOINT ["/opt/instance-tools/bin/entrypoint.sh"]
-# CMD []
-# The entrypoint.sh will execute scripts in /opt/provisioning/ during startup.
+EXPOSE 6901 11111 18080
