@@ -39,11 +39,9 @@ RUN apt-get update && \
     libgl1-mesa-glx \
     libfontconfig1 \
     libfreetype6 \
-    # *** UPDATED Package Names for Ubuntu 22.04 (Jammy) ***
     libjpeg-turbo8 \
     libpng16-16 \
     libpulse0 \
-    # *** UPDATED Package Names for Ubuntu 22.04 (Jammy) ***
     libwebp7 \
     libxcb-shm0 \
     libxcb1 \
@@ -57,7 +55,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Install KasmVNC Server
-ARG KASMVNC_URL="https://github.com/kasmtech/KasmVNC/releases/download/v1.4.0/kasmvncserver_jammy_1.4.0_amd64.deb"
+# *** UPDATED KasmVNC Download URL to v1.3.4 and correct filename ***
+ARG KASMVNC_URL="https://github.com/kasmtech/KasmVNC/releases/download/v1.3.4/kasmvncserver_jammy_1.3.4_amd64.deb"
 RUN wget -O /tmp/kasmvncserver.deb "${KASMVNC_URL}" && \
     apt-get update && \
     apt-get install -y /tmp/kasmvncserver.deb && \
