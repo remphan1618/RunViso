@@ -7,16 +7,16 @@ LABEL description="VisoMaster Runtime Setup: Minimal base with Jupyter, KasmVNC,
 # Prevent interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
 # Set locale to avoid issues with some tools
-ENV LANG C.UTF-8
+ENV LANG=C.UTF-8
 
 # Install essential packages:
+# git: Still useful for user within Jupyter, keep it for now.
 # wget/curl: For downloading installers/keys
 # ca-certificates: For HTTPS connections
 # supervisor: For process management
 # gnupg: For adding Caddy repo key
 # KasmVNC dependencies: Based on common requirements
 # python3-pip: System pip (optional, can be removed if not needed)
-# git: Still useful for user within Jupyter, keep it for now.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     wget \
@@ -42,8 +42,8 @@ RUN curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --de
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Miniconda
-ENV CONDA_DIR /opt/conda
-ENV PATH $CONDA_DIR/bin:$PATH
+ENV CONDA_DIR=/opt/conda
+ENV PATH=$CONDA_DIR/bin:$PATH
 RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py310_23.11.0-2-Linux-x86_64.sh -O ~/miniconda.sh && \
     /bin/bash ~/miniconda.sh -b -p $CONDA_DIR && \
     rm ~/miniconda.sh && \
@@ -69,7 +69,13 @@ RUN mkdir -p /workspace /var/log/supervisor
 # Assumes these files are in the same directory as the Dockerfile (build context root)
 COPY RunViso-Supervisord.conf /etc/supervisor/conf.d/RunViso-Supervisord.conf
 COPY RunViso-Caddyfile /etc/caddy/Caddyfile
-COPY RunViso-SetupGuide.ipynb /workspace/RunViso-SetupGuide.ipynb # Copy Notebook directly
+
+# --- MODIFICATION START ---
+# Copy Notebook directly to /tmp first as a diagnostic step
+COPY RunViso-SetupGuide.ipynb /tmp/RunViso-SetupGuide.ipynb
+# Now move it to the final destination (this happens inside the container build)
+RUN mv /tmp/RunViso-SetupGuide.ipynb /workspace/RunViso-SetupGuide.ipynb
+# --- MODIFICATION END ---
 
 # Default KasmVNC port
 EXPOSE 6901
